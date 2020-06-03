@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 
@@ -52,7 +53,20 @@ func getUsers(w http.ResponseWriter, r *http.Request) {
 }
 
 func postUsers(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Test POST endpoint worked")
+	w.Header().Set("Content-Type", "application/json")
+	//change status to 201: created
+	w.WriteHeader(http.StatusCreated)
+
+	body, error := ioutil.ReadAll(r.Body)
+	if error != nil {
+		fmt.Fprintf(w, "Error on postUsers method")
+		return
+	}
+	var newUser User
+	json.Unmarshal(body, &newUser)
+	newUser.Id = len(Users) + 1
+	Users = append(Users, newUser)
+	json.NewEncoder(w).Encode(newUser)
 }
 
 func handlerRequests() {
