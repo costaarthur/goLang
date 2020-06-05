@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strconv"
+	"strings"
 
 	"github.com/gorilla/mux"
 )
@@ -49,31 +51,73 @@ func homePage(w http.ResponseWriter, r *http.Request) {
 
 func getUsers(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
+	// newEncoder returns a new encoder that writes to w
+	// transform Users into json
+	// encode writes on the screen
 	json.NewEncoder(w).Encode(Users)
+}
+
+func filterUsers(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	splitedPath := strings.Split(r.URL.Path, "/")
+
+	if len(splitedPath) > 3 {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	//convert splitedPath (string) to int
+	id, err := strconv.Atoi(splitedPath[2])
+	if err != nil {
+		fmt.Fprintf(w, "Error on filtertUsers method")
+		return
+	}
+
+	for _, user := range Users {
+		if user.Id == id {
+			json.NewEncoder(w).Encode(user)
+			return
+		}
+	}
+	w.WriteHeader(http.StatusNotFound)
 }
 
 func postUsers(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	//change status to 201: created
-	w.WriteHeader(http.StatusCreated)
+	body, err := ioutil.ReadAll(r.Body)
 
-	body, error := ioutil.ReadAll(r.Body)
-	if error != nil {
+	if err != nil {
 		fmt.Fprintf(w, "Error on postUsers method")
 		return
 	}
 	var newUser User
+	//parses the json.encoded data and store the result
 	json.Unmarshal(body, &newUser)
 	newUser.Id = len(Users) + 1
 	Users = append(Users, newUser)
 	json.NewEncoder(w).Encode(newUser)
+	//change status to 201: created
+	w.WriteHeader(http.StatusCreated)
+}
+
+func deleteUsers(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	body, err := ioutil.ReadAll(r.Body)
+
+	for index, user := range Users {
+		if user.Id == body.id {
+			fmt.Fprintf(w, "Delete achou o user")
+		}
+	}
 }
 
 func handlerRequests() {
 	myRouter := mux.NewRouter().StrictSlash(true)
 	myRouter.HandleFunc("/", homePage)
 	myRouter.HandleFunc("/users", getUsers).Methods("GET")
+	myRouter.HandleFunc("/users/", filterUsers).Methods("GET")
 	myRouter.HandleFunc("/users", postUsers).Methods("POST")
+	myRouter.HandleFunc("/users", deleteUsers).Methods("DELETE")
 	log.Fatal(http.ListenAndServe(":3003", myRouter))
 }
 
