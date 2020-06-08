@@ -103,12 +103,22 @@ func postUsers(w http.ResponseWriter, r *http.Request) {
 func deleteUsers(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	body, err := ioutil.ReadAll(r.Body)
+	var userToDelete User
+	json.Unmarshal(body, &userToDelete)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 
 	for index, user := range Users {
-		if user.Id == body.id {
-			fmt.Fprintf(w, "Delete achou o user")
+		if userToDelete.Id == user.Id {
+			Users = append(Users[0:index], Users[index+1:len(Users)]...)
+			w.WriteHeader(http.StatusNoContent)
+			break
 		}
 	}
+	fmt.Println("entrei")
+	w.WriteHeader(http.StatusNotFound)
 }
 
 func handlerRequests() {
