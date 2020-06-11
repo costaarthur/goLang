@@ -100,6 +100,44 @@ func postUsers(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
+func updateUsers(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	splitedPath := strings.Split(r.URL.Path, "/")
+	//convert string to int
+	id, convertToIntErr := strconv.Atoi(splitedPath[2])
+
+	if convertToIntErr != nil {
+		fmt.Fprintf(w, "Error on convert to int")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	body, bodyErr := ioutil.ReadAll(r.Body)
+
+	if bodyErr != nil {
+		fmt.Fprintf(w, "Error on read body")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	var updatedUser User
+	jsonErr := json.Unmarshal(body, &updatedUser)
+
+	if jsonErr != nil {
+		fmt.Fprintf(w, "Error on convert to json")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	for index, user := range Users {
+		if id == user.Id {
+			Users[index] = updatedUser
+			json.NewEncoder(w).Encode(updatedUser)
+		}
+	}
+	w.WriteHeader(http.StatusNotFound)
+}
+
 func deleteUsers(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	body, err := ioutil.ReadAll(r.Body)
@@ -117,7 +155,6 @@ func deleteUsers(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 	}
-	fmt.Println("entrei")
 	w.WriteHeader(http.StatusNotFound)
 }
 
@@ -127,6 +164,7 @@ func handlerRequests() {
 	myRouter.HandleFunc("/users", getUsers).Methods("GET")
 	myRouter.HandleFunc("/users/", filterUsers).Methods("GET")
 	myRouter.HandleFunc("/users", postUsers).Methods("POST")
+	myRouter.HandleFunc("/users/", updateUsers).Methods("PUT")
 	myRouter.HandleFunc("/users", deleteUsers).Methods("DELETE")
 	log.Fatal(http.ListenAndServe(":3003", myRouter))
 }
