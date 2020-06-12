@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/gorilla/mux"
 )
@@ -93,15 +92,10 @@ func postUsers(w http.ResponseWriter, r *http.Request) {
 
 func updateUsers(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	splitedPath := strings.Split(r.URL.Path, "/")
-	//convert string to int
-	id, convertToIntErr := strconv.Atoi(splitedPath[2])
 
-	if convertToIntErr != nil {
-		fmt.Fprintf(w, "Error on convert to int")
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
+	vars := mux.Vars(r)
+	// convert id to int
+	id, _ := strconv.Atoi(vars["userId"])
 
 	body, bodyErr := ioutil.ReadAll(r.Body)
 
@@ -131,16 +125,17 @@ func updateUsers(w http.ResponseWriter, r *http.Request) {
 
 func deleteUsers(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	body, err := ioutil.ReadAll(r.Body)
-	var userToDelete User
-	json.Unmarshal(body, &userToDelete)
+
+	vars := mux.Vars(r)
+	id, err := strconv.Atoi(vars["userId"])
+
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
 	for index, user := range Users {
-		if userToDelete.Id == user.Id {
+		if id == user.Id {
 			Users = append(Users[0:index], Users[index+1:len(Users)]...)
 			w.WriteHeader(http.StatusNoContent)
 			break
@@ -154,8 +149,8 @@ func handlerRequests(myRouter *mux.Router) {
 	myRouter.HandleFunc("/users", getUsers).Methods("GET")
 	myRouter.HandleFunc("/users/{userId}", filterUsers).Methods("GET")
 	myRouter.HandleFunc("/users", postUsers).Methods("POST")
-	myRouter.HandleFunc("/users/", updateUsers).Methods("PUT")
-	myRouter.HandleFunc("/users", deleteUsers).Methods("DELETE")
+	myRouter.HandleFunc("/users/{userId}", updateUsers).Methods("PUT")
+	myRouter.HandleFunc("/users/{userId}", deleteUsers).Methods("DELETE")
 }
 
 func handlerServer() {
