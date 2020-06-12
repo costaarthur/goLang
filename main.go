@@ -46,7 +46,7 @@ var Users []User = []User{
 }
 
 func homePage(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Homepage Endpoint Hit")
+	fmt.Fprintf(w, "Welcome home, sir.")
 }
 
 func getUsers(w http.ResponseWriter, r *http.Request) {
@@ -59,19 +59,10 @@ func getUsers(w http.ResponseWriter, r *http.Request) {
 
 func filterUsers(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	splitedPath := strings.Split(r.URL.Path, "/")
 
-	if len(splitedPath) > 3 {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
-
-	//convert splitedPath (string) to int
-	id, err := strconv.Atoi(splitedPath[2])
-	if err != nil {
-		fmt.Fprintf(w, "Error on filtertUsers method")
-		return
-	}
+	vars := mux.Vars(r)
+	// convert id to number
+	id, _ := strconv.Atoi(vars["userId"])
 
 	for _, user := range Users {
 		if user.Id == id {
@@ -158,18 +149,23 @@ func deleteUsers(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotFound)
 }
 
-func handlerRequests() {
-	myRouter := mux.NewRouter().StrictSlash(true)
+func handlerRequests(myRouter *mux.Router) {
 	myRouter.HandleFunc("/", homePage)
 	myRouter.HandleFunc("/users", getUsers).Methods("GET")
-	myRouter.HandleFunc("/users/", filterUsers).Methods("GET")
+	myRouter.HandleFunc("/users/{userId}", filterUsers).Methods("GET")
 	myRouter.HandleFunc("/users", postUsers).Methods("POST")
 	myRouter.HandleFunc("/users/", updateUsers).Methods("PUT")
 	myRouter.HandleFunc("/users", deleteUsers).Methods("DELETE")
+}
+
+func handlerServer() {
+	// strictSlash(true) means that the route /users/ redirect to /users, preventing errors
+	myRouter := mux.NewRouter().StrictSlash(true)
+	handlerRequests(myRouter)
+	fmt.Println("Server running on the port 3003")
 	log.Fatal(http.ListenAndServe(":3003", myRouter))
 }
 
 func main() {
-	fmt.Println("Server running on the port 3003")
-	handlerRequests()
+	handlerServer()
 }
