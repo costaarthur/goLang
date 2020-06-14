@@ -49,7 +49,6 @@ func homePage(w http.ResponseWriter, r *http.Request) {
 }
 
 func getUsers(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
 	// newEncoder returns a new encoder that writes to w
 	// transform Users into json
 	// encode writes on the screen
@@ -57,8 +56,6 @@ func getUsers(w http.ResponseWriter, r *http.Request) {
 }
 
 func filterUsers(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
 	vars := mux.Vars(r)
 	// convert id to number
 	id, _ := strconv.Atoi(vars["userId"])
@@ -73,7 +70,6 @@ func filterUsers(w http.ResponseWriter, r *http.Request) {
 }
 
 func postUsers(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
 	body, err := ioutil.ReadAll(r.Body)
 
 	if err != nil {
@@ -91,8 +87,6 @@ func postUsers(w http.ResponseWriter, r *http.Request) {
 }
 
 func updateUsers(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
 	vars := mux.Vars(r)
 	// convert id to int
 	id, _ := strconv.Atoi(vars["userId"])
@@ -124,8 +118,6 @@ func updateUsers(w http.ResponseWriter, r *http.Request) {
 }
 
 func deleteUsers(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["userId"])
 
@@ -153,9 +145,17 @@ func handlerRequests(myRouter *mux.Router) {
 	myRouter.HandleFunc("/users/{userId}", deleteUsers).Methods("DELETE")
 }
 
+func setHeaderToJsonMw(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		next.ServeHTTP(w, r)
+	})
+}
+
 func handlerServer() {
 	// strictSlash(true) means that the route /users/ redirect to /users, preventing errors
 	myRouter := mux.NewRouter().StrictSlash(true)
+	myRouter.Use(setHeaderToJsonMw)
 	handlerRequests(myRouter)
 	fmt.Println("Server running on the port 3003")
 	log.Fatal(http.ListenAndServe(":3003", myRouter))
