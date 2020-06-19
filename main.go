@@ -1,14 +1,18 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gorilla/mux"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type User struct {
@@ -43,6 +47,8 @@ var Users []User = []User{
 		Height:   1.77,
 	},
 }
+
+var client *mongo.Client
 
 func homePage(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Welcome home, sir.")
@@ -84,6 +90,12 @@ func postUsers(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(newUser)
 	//change status to 201: created
 	w.WriteHeader(http.StatusCreated)
+
+	collection := client.Database("simplecrud").Collection("user")
+	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+	result, _ := collection.InsertOne(ctx, newUser)
+	json.NewEncoder(w).Encode(result)
+
 }
 
 func updateUsers(w http.ResponseWriter, r *http.Request) {
@@ -163,4 +175,8 @@ func handlerServer() {
 
 func main() {
 	handlerServer()
+	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+	// client, _ = mongo.Connect(ctx, "mongodb://localhost:27017")
+	client, _ = mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017"))
+
 }
